@@ -110,6 +110,8 @@ public:
     // see it aligned Note that padding_char are ignored if width is 0
     return to_string_with_padding(width, padding_char);
   }
+  size_t Size() const { return this->value.size(); }
+  void Dump() const { dump_digits(*this); }
 
   // NOTE: both +0 and -0 should return true
   bool Is_Zero() const { return op_equal(this->value, vec_zero); }

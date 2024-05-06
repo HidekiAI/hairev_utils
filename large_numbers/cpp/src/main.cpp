@@ -24,12 +24,16 @@ int main() {
   auto digit_count = my_large_number.Fibonacci(index).Get().size();
   do {
     index++;
-    auto result = hairev::libs::Large_Numbers::Fibonacci(index);
-    digit_count = result.Get().size();
+    my_large_number = hairev::libs::Large_Numbers::Fibonacci(index);
+    digit_count = my_large_number.Size();
   } while (digit_count < MAX_DIGITS);
 
-  std::cout << "Final Index: " << index << " - " << digit_count << " digits"
-            << endl;
+  std::cout << endl
+            << "First encounter of " << MAX_DIGITS
+            << " digits for Fibonacci number is at index: " << index << endl
+            << "The actual number (" << digit_count << " digits): " << endl;
+  my_large_number.Dump();
+  std::cout << endl;
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> diff = end - start;
