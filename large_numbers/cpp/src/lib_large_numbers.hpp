@@ -372,6 +372,41 @@ private:
   }
   void trim() { value = trim(value); }
 
+  // check if the number is a multiple of 10 (i.e. 10, 100, ... 10^n)
+  // Returns a tuple of (multiplier, number of 0's)
+  // i.e. 1000 -> Some(10, 3)
+  //      250 -> Some(25, 1)
+  //      1234 -> None
+  //      2500000 -> Some(25, 4)
+  // there was an interesting way to count number of digits in a number
+  // (i.e. 1234 has 4 digits) by using 'log10(n) + 1', but because we're
+  // dealing with reversed digits, we'll just count the number of 0's
+  // at the end of the number
+  std::optional<
+      std::tuple<int_revvec_t /*multiplier*/, uint64_t /*number of 0's*/>>
+  is_multiple_of_10(const int_revvec_t &number_seq) const {
+    auto multiplier = number_seq;
+    auto num_zeros = 0;
+    // just happens that num_zeros count is also the position of where to
+    // extract multipliers
+    for (auto digit : number_seq) {
+      if (digit == 0) {
+        num_zeros++;
+      } else {
+        break;
+      }
+    }
+    if (num_zeros == 0) {
+      return std::nullopt;
+    }
+    // strip the trailing 0's and we'll get a multiplier
+    auto zero_index = num_zeros;
+    while (zero_index > 0) {
+      multiplier.pop_back();
+      zero_index--;
+    }
+  }
+
   // We need comparitors for the vector<uint32_t>
   bool op_equal(const int_revvec_t &lhs, const int_revvec_t &rhs) const {
     if (lhs != rhs) {
@@ -433,18 +468,18 @@ private:
 
     // for subtraction, the most obvious is to check if left == right
     if (op_equal(lhs, rhs)) {
-      //std::cout << "\top_subtract result (zero): ";
-      //dump_digits(vec_zero);
-      //std::cout << std::endl;
+      // std::cout << "\top_subtract result (zero): ";
+      // dump_digits(vec_zero);
+      // std::cout << std::endl;
 
       return vec_zero;
     }
     // another obvious is if either is 0 (but because we assume lhs > rhs, we
     // only need to check rhs)
     if ((rhs.size() == 0) || (rhs.size() == 1 && rhs[0] == 0)) {
-      //std::cout << "\top_subtract result (rhs==0, returning lhs-as-is): ";
-      //dump_digits(lhs);
-      //std::cout << std::endl;
+      // std::cout << "\top_subtract result (rhs==0, returning lhs-as-is): ";
+      // dump_digits(lhs);
+      // std::cout << std::endl;
 
       return lhs;
     }
@@ -517,9 +552,9 @@ private:
     // rhs, we can just check rhs for width
     if ((right_clone.size() == 0) ||
         (right_clone.size() == 1 && right_clone[0] == 0)) {
-      //std::cout << "\top_add result (rhs==0, returning lhs-as-is): ";
-      //dump_digits(left_clone);
-      //std::cout << std::endl;
+      // std::cout << "\top_add result (rhs==0, returning lhs-as-is): ";
+      // dump_digits(left_clone);
+      // std::cout << std::endl;
 
       return left_clone;
     }
@@ -578,18 +613,18 @@ private:
   std::tuple<bool /*is_positive*/, int_revvec_t /*digits*/> op_add_tuple(
       std::tuple<bool /*is_positive*/, int_revvec_t /*digits*/> left,
       std::tuple<bool /*is_positive*/, int_revvec_t /*digits*/> right) const {
-    //std::cout << "op_add_tuple:" << std::endl;
-    //std::cout << "\tleft (is_positive=" << std::get<0>(left) << ")  :";
-    //dump_digits(left);
-    //std::cout << std::endl;
-    //std::cout << "\tright (is_positive=" << std::get<0>(right) << ") :";
-    //dump_digits(right);
-    //std::cout << std::endl;
+    // std::cout << "op_add_tuple:" << std::endl;
+    // std::cout << "\tleft (is_positive=" << std::get<0>(left) << ")  :";
+    // dump_digits(left);
+    // std::cout << std::endl;
+    // std::cout << "\tright (is_positive=" << std::get<0>(right) << ") :";
+    // dump_digits(right);
+    // std::cout << std::endl;
 
     // if lhs > 0, rhs > 0, just add both
     if (std::get<0>(left) && std::get<0>(right)) {
-      //std::cout << "\tboth positive..." << std::endl;
-      // NOTE: op_add() pretests for lesser-of-the-two == 0
+      // std::cout << "\tboth positive..." << std::endl;
+      //  NOTE: op_add() pretests for lesser-of-the-two == 0
       auto result = op_add(std::get<1>(left), std::get<1>(right));
       // both are positive, so result is positive
       return {true, result};
@@ -597,7 +632,7 @@ private:
 
     // if lhs < 0, rhs > 0, swap and subtract
     else if (!std::get<0>(left) && std::get<0>(right)) {
-      //std::cout << "\tleft negative, right positive..." << std::endl;
+      // std::cout << "\tleft negative, right positive..." << std::endl;
       auto result = op_subtract(std::get<1>(right), std::get<1>(left));
       // if rhs >= lhs, then result is positive, else negative
       return {op_less_than(std::get<1>(right), std::get<1>(left)), result};
@@ -605,7 +640,7 @@ private:
 
     // if lhs > 0, rhs < 0, just subtract
     else if (std::get<0>(left) && !std::get<0>(right)) {
-      //std::cout << "\tleft positive, right negative..." << std::endl;
+      // std::cout << "\tleft positive, right negative..." << std::endl;
       auto result = op_subtract(std::get<1>(left), std::get<1>(right));
       // if lhs >= rhs, then result is positive, else negative
       return {op_less_than(std::get<1>(left), std::get<1>(right)), result};
@@ -613,7 +648,7 @@ private:
 
     // if lhs < 0, rhs < 0, make rhs positive, swap, and subtract
     else if (!std::get<0>(left) && !std::get<0>(right)) {
-      //std::cout << "\tboth negative..." << std::endl;
+      // std::cout << "\tboth negative..." << std::endl;
       auto result = op_subtract(std::get<1>(right), std::get<1>(left));
       // if rhs >= lhs, then result is positive, else negative
       return {op_less_than(std::get<1>(right), std::get<1>(left)), result};
@@ -629,13 +664,13 @@ private:
   std::tuple<bool /*is_positive*/, int_revvec_t /*digits*/> op_subtract_tuple(
       std::tuple<bool /*is_positive*/, int_revvec_t /*digits*/> left,
       std::tuple<bool /*is_positive*/, int_revvec_t /*digits*/> right) const {
-    //std::cout << "op_subtract_tuple:" << std::endl;
-    //std::cout << "\tleft (is_positive=" << std::get<0>(left) << ")  :";
-    //dump_digits(left);
-    //std::cout << std::endl;
-    //std::cout << "\tright (is_positive=" << std::get<0>(right) << ") :";
-    //dump_digits(right);
-    //std::cout << std::endl;
+    // std::cout << "op_subtract_tuple:" << std::endl;
+    // std::cout << "\tleft (is_positive=" << std::get<0>(left) << ")  :";
+    // dump_digits(left);
+    // std::cout << std::endl;
+    // std::cout << "\tright (is_positive=" << std::get<0>(right) << ") :";
+    // dump_digits(right);
+    // std::cout << std::endl;
 
     // first, clone so that we can reverse it
     auto left_clone = std::get<1>(left);
@@ -740,8 +775,31 @@ private:
     dump_digits(right);
     std::cout << std::endl;
 
-    // not implemented yet
-    throw std::invalid_argument("Not implemented yet");
+    auto lhs_clone = std::get<1>(left);
+    auto rhs_clone = std::get<1>(right);
+    // if lhs > 0 && rhs > 0, result > 0 (pos * pos = pos)
+    // if lhs < 0 && rhs < 0, result > 0 (neg * neg = pos)
+    // if lhs > 0 && rhs < 0, result < 0 (pos * neg = neg)
+    // if lhs < 0 && rhs > 0, result < 0 (neg * pos = neg)
+    bool result_is_positive = (std::get<0>(left) == std::get<0>(right));
+
+    // simple edge cases: if either is zero, then the result is zero
+    if (lhs_clone.size() == 0 || rhs_clone.size() == 0 ||
+        (lhs_clone.size() == 1 && lhs_clone[0] == 0) ||
+        (rhs_clone.size() == 1 && rhs_clone[0] == 0)) {
+      return {true, vec_zero};
+    }
+    // if either is 1, then the result is the other
+    if (lhs_clone.size() == 1 && lhs_clone[0] == 1) {
+      return {result_is_positive, rhs_clone};
+    } else if (rhs_clone.size() == 1 && rhs_clone[0] == 1) {
+      return {result_is_positive, lhs_clone};
+    }
+    // if either is multiples of 10's (10, 100, ... 10^n), then just shift
+    // the digits to the left, or more to the point, append 0's the tail of the
+    // other number.  i.e. 123 * 100 = 12300
+    bool lhs_is_power_of_10 = is_multiple_of_10(lhs_clone);
+    bool rhs_is_power_of_10 = is_multiple_of_10(rhs_clone);
   }
   std::tuple<bool /*is_positive*/, int_revvec_t /*digits*/> op_divide_tuple(
       std::tuple<bool /*is_positive*/, int_revvec_t /*digits*/> left,
